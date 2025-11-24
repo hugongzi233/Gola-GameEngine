@@ -1,108 +1,136 @@
 #pragma once
 
 #include "../Window/gola_window.hpp"
+#include "VkBootstrap.h"
 
 // std lib headers
 #include <string>
 #include <vector>
 
 namespace gola {
-	struct SwapChainSupportDetails {
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
+    struct SwapChainSupportDetails {
+        VkSurfaceCapabilitiesKHR capabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR> presentModes;
+    };
 
-	struct QueueFamilyIndices {
-		uint32_t graphicsFamily;
-		uint32_t presentFamily;
-		bool graphicsFamilyHasValue = false;
-		bool presentFamilyHasValue = false;
-		bool isComplete() { return graphicsFamilyHasValue && presentFamilyHasValue; }
-	};
+    struct QueueFamilyIndices {
+        uint32_t graphicsFamily;
+        uint32_t presentFamily;
+        bool graphicsFamilyHasValue = false;
+        bool presentFamilyHasValue = false;
+        bool isComplete() { return graphicsFamilyHasValue && presentFamilyHasValue; }
+    };
 
-	class GolaDevice {
-	public:
+    class GolaDevice {
+    public:
 #ifdef NDEBUG
-		const bool enableValidationLayers = false;
+        const bool enableValidationLayers = false;
 #else
-		const bool enableValidationLayers = true;
+        const bool enableValidationLayers = true;
 #endif
 
-		GolaDevice(GolaWindow& window);
-		~GolaDevice();
+        GolaDevice(GolaWindow &window);
 
-		// Not copyable or movable
-		GolaDevice(const GolaDevice&) = delete;
-		GolaDevice& operator=(const GolaDevice&) = delete;
-		GolaDevice(GolaDevice&&) = delete;
-		GolaDevice& operator=(GolaDevice&&) = delete;
+        ~GolaDevice();
 
-		VkCommandPool getCommandPool() { return commandPool; }
-		VkDevice device() { return device_; }
-		VkSurfaceKHR surface() { return surface_; }
-		VkQueue graphicsQueue() { return graphicsQueue_; }
-		VkQueue presentQueue() { return presentQueue_; }
+        // Not copyable or movable
+        GolaDevice(const GolaDevice &) = delete;
 
-		SwapChainSupportDetails getSwapChainSupport() { return querySwapChainSupport(physicalDevice); }
-		uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-		QueueFamilyIndices findPhysicalQueueFamilies() { return findQueueFamilies(physicalDevice); }
-		VkFormat findSupportedFormat(
-			const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+        GolaDevice &operator=(const GolaDevice &) = delete;
 
-		// Buffer Helper Functions
-		void createBuffer(
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags properties,
-			VkBuffer& buffer,
-			VkDeviceMemory& bufferMemory);
-		VkCommandBuffer beginSingleTimeCommands();
-		void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-		void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-		void copyBufferToImage(
-			VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount);
+        GolaDevice(GolaDevice &&) = delete;
 
-		void createImageWithInfo(
-			const VkImageCreateInfo& imageInfo,
-			VkMemoryPropertyFlags properties,
-			VkImage& image,
-			VkDeviceMemory& imageMemory);
+        GolaDevice &operator=(GolaDevice &&) = delete;
 
-		VkPhysicalDeviceProperties properties;
+        VkCommandPool getCommandPool() { return commandPool; }
+        VkDevice device() { return device_; }
+        VkSurfaceKHR surface() { return surface_; }
+        VkQueue graphicsQueue() { return graphicsQueue_; }
+        VkQueue presentQueue() { return presentQueue_; }
 
-	private:
-		void createInstance();
-		void setupDebugMessenger();
-		void createSurface();
-		void pickPhysicalDevice();
-		void createLogicalDevice();
-		void createCommandPool();
+        SwapChainSupportDetails getSwapChainSupport() { return querySwapChainSupport(physicalDevice); }
 
-		// helper functions
-		bool isDeviceSuitable(VkPhysicalDevice device);
-		std::vector<const char*> getRequiredExtensions();
-		bool checkValidationLayerSupport();
-		QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-		void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-		void hasGflwRequiredInstanceExtensions();
-		bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-		SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-		// 全局Vk实例
-		VkInstance instance;
-		VkDebugUtilsMessengerEXT debugMessenger;
-		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-		GolaWindow& window;
-		VkCommandPool commandPool;
+        QueueFamilyIndices findPhysicalQueueFamilies() { return findQueueFamilies(physicalDevice); }
 
-		// 逻辑设备:GPU 硬件上的实际 GPU 驱动程序 与GPU通信
-		VkDevice device_;
-		VkSurfaceKHR surface_;
-		VkQueue graphicsQueue_;
-		VkQueue presentQueue_;
+        VkFormat findSupportedFormat(
+            const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
-		const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
-		const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-	};
-}  // namespace gola
+        // Buffer Helper Functions
+        void createBuffer(
+            VkDeviceSize size,
+            VkBufferUsageFlags usage,
+            VkMemoryPropertyFlags properties,
+            VkBuffer &buffer,
+            VkDeviceMemory &bufferMemory);
+
+        VkCommandBuffer beginSingleTimeCommands();
+
+        void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+
+        void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+
+        void copyBufferToImage(
+            VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount);
+
+        void createImageWithInfo(
+            const VkImageCreateInfo &imageInfo,
+            VkMemoryPropertyFlags properties,
+            VkImage &image,
+            VkDeviceMemory &imageMemory);
+
+        VkPhysicalDeviceProperties properties;
+
+    private:
+        void createInstance();
+
+        void setupDebugMessenger();
+
+        void createSurface();
+
+        void pickPhysicalDevice();
+
+        void createLogicalDevice();
+
+        void createCommandPool();
+
+        // helper functions
+        bool isDeviceSuitable(VkPhysicalDevice device);
+
+        std::vector<const char *> getRequiredExtensions();
+
+        bool checkValidationLayerSupport();
+
+        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+
+        void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
+
+        void hasGflwRequiredInstanceExtensions();
+
+        bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+
+        SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+
+        // 全局Vk实例
+        VkInstance instance;
+        VkDebugUtilsMessengerEXT debugMessenger;
+        VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+        GolaWindow &window;
+        VkCommandPool commandPool;
+
+        // 逻辑设备:GPU 硬件上的实际 GPU 驱动程序 与GPU通信
+        VkDevice device_;
+        VkSurfaceKHR surface_;
+        VkQueue graphicsQueue_;
+        VkQueue presentQueue_;
+
+        const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
+        const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+        vkb::Instance vkbInstance;
+        vkb::PhysicalDevice vkbPhysicalDevice;
+        vkb::Device vkbDevice;
+    };
+} // namespace gola

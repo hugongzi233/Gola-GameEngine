@@ -5,6 +5,7 @@
 #include <iostream>
 #include <set>
 #include <unordered_set>
+#include "VkBootstrap.h"
 
 namespace gola {
 	// local callback functions
@@ -48,11 +49,51 @@ namespace gola {
 
 	// class member functions
 	GolaDevice::GolaDevice(GolaWindow& window) : window{ window } {
-		createInstance();
-		setupDebugMessenger();
-		createSurface();
-		pickPhysicalDevice();
-		createLogicalDevice();
+		// 使用 vk-bootstrap 替换 Vulkan 初始化
+		vkb::InstanceBuilder builder;
+		auto inst_ret = builder.set_app_name("Gola GameEngine Application")
+			.set_engine_name("Gola Engine")
+			.set_engine_version(1, 0, 0)
+			.request_validation_layers(enableValidationLayers)
+			.use_default_debug_messenger()
+			.require_api_version(1, 0, 0)
+			.build();
+		if (!inst_ret) {
+			throw std::runtime_error("Failed to create Vulkan instance with vk-bootstrap");
+		}
+		vkb::Instance vkb_inst = inst_ret.value();
+		instance = vkb_inst.instance;
+		debugMessenger = vkb_inst.debug_messenger;
+
+		// 创建表面
+		if (glfwCreateWindowSurface(instance, window.getGLFWwindow(), nullptr, &surface_) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create window surface!");
+		}
+
+		// 选择物理设备
+		vkb::PhysicalDeviceSelector selector{ vkb_inst };
+		auto phys_ret = selector
+			.set_surface(surface_)
+			.select();
+		if (!phys_ret) {
+			throw std::runtime_error("Failed to select physical device with vk-bootstrap");
+		}
+		vkb::PhysicalDevice vkb_phys = phys_ret.value();
+		physicalDevice = vkb_phys.physical_device;
+		properties = vkb_phys.properties;
+
+		// 创建逻辑设备和队列
+		vkb::DeviceBuilder dev_builder{ vkb_phys };
+		auto dev_ret = dev_builder.build();
+		if (!dev_ret) {
+			throw std::runtime_error("Failed to create logical device with vk-bootstrap");
+		}
+		vkb::Device vkb_dev = dev_ret.value();
+		device_ = vkb_dev.device;
+		graphicsQueue_ = vkb_dev.get_queue(vkb::QueueType::graphics).value();
+		presentQueue_ = vkb_dev.get_queue(vkb::QueueType::present).value();
+
+		// 创建命令池
 		createCommandPool();
 	}
 
@@ -70,119 +111,15 @@ namespace gola {
 
 	// 初始化VK实例
 	void GolaDevice::createInstance() {
-		if (enableValidationLayers && !checkValidationLayerSupport()) {
-			throw std::runtime_error("validation layers requested, but not available!");
-		}
-
-		VkApplicationInfo appInfo = {};
-		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		appInfo.pApplicationName = "Gola GameEngine Application";
-		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.pEngineName = "Gola Engine";
-		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.apiVersion = VK_API_VERSION_1_0;
-
-		VkInstanceCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		createInfo.pApplicationInfo = &appInfo;
-
-		auto extensions = getRequiredExtensions();
-		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-		createInfo.ppEnabledExtensionNames = extensions.data();
-
-		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
-		if (enableValidationLayers) {
-			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-			createInfo.ppEnabledLayerNames = validationLayers.data();
-
-			populateDebugMessengerCreateInfo(debugCreateInfo);
-			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
-		}
-		else {
-			createInfo.enabledLayerCount = 0;
-			createInfo.pNext = nullptr;
-		}
-
-		if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create instance!");
-		}
-
-		hasGflwRequiredInstanceExtensions();
+		// 已由 vk-bootstrap 替换，无需实现
 	}
 
 	void GolaDevice::pickPhysicalDevice() {
-		uint32_t deviceCount = 0;
-		vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-		if (deviceCount == 0) {
-			throw std::runtime_error("failed to find GPUs with Vulkan support!");
-		}
-		std::cout << "Device count: " << deviceCount << std::endl;
-		std::vector<VkPhysicalDevice> devices(deviceCount);
-		vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
-
-		for (const auto& device : devices) {
-			if (isDeviceSuitable(device)) {
-				physicalDevice = device;
-				break;
-			}
-		}
-
-		if (physicalDevice == VK_NULL_HANDLE) {
-			throw std::runtime_error("failed to find a suitable GPU!");
-		}
-
-		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-		std::cout << "physical device: " << properties.deviceName << std::endl;
-		std::cout << "physical device driver version: " << properties.driverVersion << std::endl;
-		std::cout << "physical device api version: " << properties.apiVersion << std::endl;
-		std::cout << "physical device type: " << properties.deviceType << std::endl;
+		// 已由 vk-bootstrap 替换，无需实现
 	}
 
 	void GolaDevice::createLogicalDevice() {
-		QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
-
-		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-		std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily, indices.presentFamily };
-
-		float queuePriority = 1.0f;
-		for (uint32_t queueFamily : uniqueQueueFamilies) {
-			VkDeviceQueueCreateInfo queueCreateInfo = {};
-			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			queueCreateInfo.queueFamilyIndex = queueFamily;
-			queueCreateInfo.queueCount = 1;
-			queueCreateInfo.pQueuePriorities = &queuePriority;
-			queueCreateInfos.push_back(queueCreateInfo);
-		}
-
-		VkPhysicalDeviceFeatures deviceFeatures = {};
-		deviceFeatures.samplerAnisotropy = VK_TRUE;
-
-		VkDeviceCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-
-		createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-		createInfo.pQueueCreateInfos = queueCreateInfos.data();
-
-		createInfo.pEnabledFeatures = &deviceFeatures;
-		createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-		createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
-		// might not really be necessary anymore because device specific validation layers
-		// have been deprecated
-		if (enableValidationLayers) {
-			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-			createInfo.ppEnabledLayerNames = validationLayers.data();
-		}
-		else {
-			createInfo.enabledLayerCount = 0;
-		}
-
-		if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device_) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create logical device!");
-		}
-
-		vkGetDeviceQueue(device_, indices.graphicsFamily, 0, &graphicsQueue_);
-		vkGetDeviceQueue(device_, indices.presentFamily, 0, &presentQueue_);
+		// 已由 vk-bootstrap 替换，无需实现
 	}
 
 	void GolaDevice::createCommandPool() {

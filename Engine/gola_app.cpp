@@ -8,7 +8,13 @@ namespace gola {
     GolaApp::GolaApp() {
         loadModels();
         createPipelineLayout();
-        recreateSwapChain();
+
+        auto extent = window.getExtent();
+        std::cout << extent.width << " " << extent.height << std::endl;
+        swapChain = std::make_unique<GolaSwapChain>(device, extent);
+
+        createPipeline();
+        // recreateSwapChain();
         createCommandBuffers();
     }
 
@@ -24,7 +30,7 @@ namespace gola {
             glfwPollEvents();
             drawFrame();
             // Render and update logic would go here
-            // std::this_thread::sleep_for(std::chrono::milliseconds(16));
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));
         }
 
         vkDeviceWaitIdle(device.device());
@@ -32,11 +38,15 @@ namespace gola {
 
     void GolaApp::loadModels() {
         std::vector<GolaModel::Vertex> vertices = {
-            {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-            {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-            {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+            // first triangle
+            {{-0.9f, -0.9f}, {1.0f, 0.0f, 0.0f}}, // v0
+            {{0.9f, -0.9f},  {1.0f, 0.0f, 0.0f}}, // v1
+            {{0.9f,  0.9f},  {0.0f, 1.0f, 0.0f}}, // v2
+            // second triangle
+            {{0.9f,  0.9f},  {0.0f, 1.0f, 0.0f}}, // v2
+            {{-0.9f, 0.9f},  {0.0f, 0.0f, 1.0f}}, // v3
+            {{-0.9f, -0.9f}, {1.0f, 0.0f, 0.0f}}, // v0
         };
-
         model = std::make_unique<GolaModel>(device, vertices);
     }
 
@@ -75,6 +85,37 @@ namespace gola {
 
         if (vkAllocateCommandBuffers(device.device(), &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate command buffers");
+        }
+
+        for (int i = 0; i < commandBuffers.size(); i++) {
+            VkCommandBufferBeginInfo beginInfo{};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+            if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to begin recording command buffer");
+            }
+
+            VkRenderPassBeginInfo renderPassInfo{};
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            renderPassInfo.renderPass = swapChain->getRenderPass();
+            renderPassInfo.framebuffer = swapChain->getFrameBuffer(i);
+            renderPassInfo.renderArea.offset = {0, 0};
+            renderPassInfo.renderArea.extent = swapChain->getSwapChainExtent();
+            std::array<VkClearValue, 2> clearValues{};
+            clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
+            clearValues[1].depthStencil = {1.0f, 0};
+            renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+            renderPassInfo.pClearValues = clearValues.data();
+            vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+            pipeline->bind(commandBuffers[i]);
+            //vkCmdDraw(commandBuffers[i], 3, 1, 0, 0); // Example draw call, assuming a triangle
+            model->bind(commandBuffers[i]);
+            model->draw(commandBuffers[i]);
+            vkCmdEndRenderPass(commandBuffers[i]);
+            if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to record command buffer");
+            }
         }
     }
 
@@ -129,9 +170,11 @@ namespace gola {
 
         vkDeviceWaitIdle(device.device());
 
-        // 清理旧交换链
+        // 先清理pipeline和command buffer，再清理swapchain
         commandBuffers.clear();
-
+        if (pipeline) {
+            pipeline.reset();
+        }
         if (swapChain) {
             swapChain.reset();
         }
@@ -145,49 +188,32 @@ namespace gola {
     }
 
     void GolaApp::drawFrame() {
-        static int frameCount = 0;
-        frameCount++;
-        std::cout << "=== Frame " << frameCount << " ===" << std::endl;
+        // static int frameCount = 0;
+        // frameCount++;
+        // std::cout << "=== Frame " << frameCount << " ===" << std::endl;
 
-        // 检查窗口状态
         if (window.shouldClose()) {
             std::cout << "Window should close!" << std::endl;
             return;
         }
 
-        std::cout << "Waiting for fence..." << std::endl;
-        // 等待当前帧的围栏
-        VkFence currentFence = swapChain->getCurrentInFlightFence();
-        vkWaitForFences(device.device(), 1, &currentFence, VK_TRUE, UINT64_MAX);
-
-        // 重置围栏
-        vkResetFences(device.device(), 1, &currentFence);
-
         uint32_t imageIndex;
         VkResult result = swapChain->acquireNextImage(&imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-            recreateSwapChain();
-            return;
+            // recreateSwapChain();
+            // return;
         } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             throw std::runtime_error("Failed to acquire swap chain image");
         }
 
-        // 录制命令缓冲区
-        recordCommandBuffers(imageIndex);
-
-        // 提交命令缓冲区
         result = swapChain->submitCommandBuffers(&commandBuffers[imageIndex], &imageIndex);
 
-        // 处理呈现结果
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window.wasFramebufferResized()) {
             window.resetFramebufferResizedFlag();
             recreateSwapChain();
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("Failed to submit command buffer");
         }
-
-        // 前进到下一帧
-        swapChain->advanceFrame();
     }
 }

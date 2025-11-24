@@ -13,10 +13,8 @@ namespace gola {
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
         GolaSwapChain(GolaDevice &deviceRef, VkExtent2D windowExtent);
-
         GolaSwapChain(
             GolaDevice &deviceRef, VkExtent2D windowExtent, std::shared_ptr<GolaSwapChain> previous);
-
         ~GolaSwapChain();
 
         GolaSwapChain(const GolaSwapChain &) = delete;
@@ -31,17 +29,6 @@ namespace gola {
         VkExtent2D getSwapChainExtent() { return swapChainExtent; }
         uint32_t width() { return swapChainExtent.width; }
         uint32_t height() { return swapChainExtent.height; }
-        size_t getCurrentFrame() const { return currentFrame; }
-        VkFence getCurrentInFlightFence() const { return inFlightFences[currentFrame]; }
-
-        VkFence &getCurrentInFlightFence() {
-            return inFlightFences[currentFrame];
-        }
-        void advanceFrame() {
-            currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-        }
-
-        VkSemaphore getCurrentImageAvailableSemaphore() const { return imageAvailableSemaphores[currentFrame]; }
 
         float extentAspectRatio() {
             return static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height);
@@ -57,6 +44,8 @@ namespace gola {
             return swapChain.swapChainDepthFormat == swapChainDepthFormat &&
                    swapChain.swapChainImageFormat == swapChainImageFormat;
         }
+
+        void setImagesInFlightFence(uint32_t imageIndex, VkFence fence) { imagesInFlight[imageIndex] = fence; }
 
     private:
         void init();
@@ -77,13 +66,6 @@ namespace gola {
         VkSurfaceFormatKHR chooseSwapSurfaceFormat(
             const std::vector<VkSurfaceFormatKHR> &availableFormats);
 
-        //
-        /* 可用的交换链呈现模式
-         * VK_PRESENT_MODE_IMMEDIATE_KHR 立即替换图像
-         * VK_PRESENT_MODE_FIFO_KHR  先进先出 vsync
-         * VK_PRESENT_MODE_FIFO_RELAXED_KHR vsync+超时替换
-         * VK_PRESENT_MODE_MAILBOX_KHR 丢弃最老的图像 使用单个元素的队列
-         */
         VkPresentModeKHR chooseSwapPresentMode(
             const std::vector<VkPresentModeKHR> &availablePresentModes);
 

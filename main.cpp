@@ -3,14 +3,16 @@
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
+#include <print>
 
 /// <summary>
 /// 程序入口
 /// </summary>
 int main() {
 	std::cout.setf(std::ios::unitbuf);
-	gola::GolaApp app;
+	gola::GolaApp app{};
 	try {
+		std::println("Application started.");
 		app.run();
 	}
 	catch (const std::exception& e) {

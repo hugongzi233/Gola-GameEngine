@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <array>
 
+#include "Core/gola_renderer.hpp"
+
 namespace gola {
     class GolaApp {
     public:
@@ -18,32 +20,26 @@ namespace gola {
         static constexpr int HEIGHT = 1080;
 
         GolaApp();
-
         ~GolaApp();
 
         GolaApp(const GolaApp &) = delete;
-
         GolaApp &operator=(const GolaApp &) = delete;
 
         void run();
 
     private:
         void loadModels();
-
         void createPipelineLayout();
-
         void createPipeline();
-
         void createCommandBuffers();
-
         void drawFrame();
-
         void recreateSwapChain();
-
         void recordCommandBuffers(int imageIndex);
 
         GolaWindow window{WIDTH, HEIGHT, "Gola GameEngine Application"};
         GolaDevice device{window};
+        // GolaRenderer lveRenderer{window, device};
+
         std::unique_ptr<GolaSwapChain> swapChain;
         std::unique_ptr<GolaPipeline> pipeline = nullptr;
         VkPipelineLayout pipelineLayout;
