@@ -5,6 +5,8 @@
 #include "gola_imgui.hpp"
 
 // Implementation-only includes
+#include <ostream>
+
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_vulkan.h"
 
@@ -52,6 +54,7 @@ namespace gola {
         ImGuiIO &io = ImGui::GetIO(); (void)io;
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         //ImGui::StyleColorsDark();
+        setupCustomFont();
         setupCustomStyle();
 
         ImGui_ImplGlfw_InitForVulkan(window, true);
@@ -79,12 +82,19 @@ namespace gola {
 
         // Upload Fonts - current backend creates fonts automatically on NewFrame but call manually to be safe
         ImGui_ImplVulkan_SetMinImageCount(static_cast<uint32_t>(swapChain.imageCount()));
+
+        std::print("Imgui initialized");
     }
 
     void GolaImgui::newFrame() {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+    }
+
+    void GolaImgui::setupCustomFont() {
+        ImGuiIO& io = ImGui::GetIO();
+        io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 18.0f, nullptr, io.Fonts->GetGlyphRangesChineseFull());
     }
 
     void GolaImgui::setupCustomStyle() {

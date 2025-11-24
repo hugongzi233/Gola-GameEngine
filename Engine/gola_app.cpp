@@ -38,7 +38,8 @@ namespace gola {
             glfwPollEvents();
             drawFrame();
             // Render and update logic would go here
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            int renderedFrames = 60;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000 / renderedFrames));
         }
 
         vkDeviceWaitIdle(device.device());
@@ -48,11 +49,11 @@ namespace gola {
         std::vector<GolaModel::Vertex> vertices = {
             // first triangle
             {{-0.9f, -0.9f}, {1.0f, 0.0f, 0.0f}}, // v0
-            {{0.9f, -0.9f},  {1.0f, 0.0f, 0.0f}}, // v1
-            {{0.9f,  0.9f},  {0.0f, 1.0f, 0.0f}}, // v2
+            {{0.9f, -0.9f}, {1.0f, 0.0f, 0.0f}}, // v1
+            {{0.9f, 0.9f}, {0.0f, 1.0f, 0.0f}}, // v2
             // second triangle
-            {{0.9f,  0.9f},  {0.0f, 1.0f, 0.0f}}, // v2
-            {{-0.9f, 0.9f},  {0.0f, 0.0f, 1.0f}}, // v3
+            {{0.9f, 0.9f}, {0.0f, 1.0f, 0.0f}}, // v2
+            {{-0.9f, 0.9f}, {0.0f, 0.0f, 1.0f}}, // v3
             {{-0.9f, -0.9f}, {1.0f, 0.0f, 0.0f}}, // v0
         };
         model = std::make_unique<GolaModel>(device, vertices);
@@ -194,8 +195,8 @@ namespace gola {
         VkResult result = swapChain->acquireNextImage(&imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-            // recreateSwapChain();
-            // return;
+            recreateSwapChain();
+            return;
         } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             throw std::runtime_error("Failed to acquire swap chain image");
         }

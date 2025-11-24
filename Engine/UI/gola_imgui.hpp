@@ -26,6 +26,8 @@ namespace gola {
         // Start a new ImGui frame
         void newFrame();
 
+        void setupCustomFont();
+
         void setupCustomStyle();
 
         // Populate UI widgets (user-provided UI lives here)
