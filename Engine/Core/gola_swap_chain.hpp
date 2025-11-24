@@ -46,6 +46,7 @@ namespace gola {
         }
 
         void setImagesInFlightFence(uint32_t imageIndex, VkFence fence) { imagesInFlight[imageIndex] = fence; }
+        VkFence getInFlightFence(uint32_t imageIndex) { return inFlightFences[imageIndex]; }
 
     private:
         void init();

@@ -5,6 +5,7 @@
 #include "Core/gola_device.hpp"
 #include "Core/gola_swap_chain.hpp"
 #include "Core/gola_model.hpp"
+#include "UI/gola_imgui.hpp"
 
 #include <memory>
 #include <vector>
@@ -45,5 +46,6 @@ namespace gola {
         VkPipelineLayout pipelineLayout;
         std::vector<VkCommandBuffer> commandBuffers;
         std::unique_ptr<GolaModel> model;
+        std::unique_ptr<GolaImgui> imgui;
     };
 }

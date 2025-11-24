@@ -9,6 +9,15 @@ set(VK_SDK_DIR C:/VulkanSDK/1.4.313.2)
 set(GLFW_DIR ThirdParty/glfw-3.4)
 set(GLM_DIR ThirdParty/glm-1.0.2)
 set(VK_BOOTSTRAP_DIR ThirdParty/vk-bootstrap)
+set(IMGUI_DIR ThirdParty/imgui)
+set(IMGUI_SOURCES
+        ThirdParty/imgui/imgui.cpp
+        ThirdParty/imgui/imgui_draw.cpp
+        ThirdParty/imgui/imgui_tables.cpp
+        ThirdParty/imgui/imgui_widgets.cpp
+        ThirdParty/imgui/backends/imgui_impl_vulkan.cpp
+        ThirdParty/imgui/backends/imgui_impl_glfw.cpp
+)
 
 add_executable(GolaGameEngine main.cpp
         Engine/Core/gola_device.cpp
@@ -17,7 +26,9 @@ add_executable(GolaGameEngine main.cpp
         Engine/Core/gola_swap_chain.cpp
         Engine/Window/gola_window.cpp
         Engine/gola_app.cpp
-        Engine/Core/gola_renderer.cpp)
+        Engine/Core/gola_renderer.cpp
+        Engine/UI/gola_imgui.cpp
+        ${IMGUI_SOURCES})
 
 find_library(GLFW_LIB
         NAMES glfw3dll glfw3
@@ -27,12 +38,13 @@ find_library(GLFW_LIB
 
 if (NOT GLFW_LIB)
     message(FATAL_ERROR "GLFW library not found in ${GLFW_DIR}/lib")
-endif()
+endif ()
 
 include_directories(${VK_SDK_DIR}/Include
         ${GLFW_DIR}/include
         ${GLM_DIR}/glm
-        ${VK_BOOTSTRAP_DIR}/src)
+        ${VK_BOOTSTRAP_DIR}/src
+        ${IMGUI_DIR})
 link_directories(${VK_SDK_DIR}/Lib
         ${GLFW_DIR}/lib
         ${VK_BOOTSTRAP_DIR}/build)
@@ -43,7 +55,7 @@ target_link_libraries(GolaGameEngine
 
 add_subdirectory(ThirdParty/vk-bootstrap)
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/${GLFW_DIR}/lib/glfw3.dll")
+if (EXISTS "${CMAKE_SOURCE_DIR}/${GLFW_DIR}/lib/glfw3.dll")
     message(STATUS "GLFW DLL found: ${CMAKE_SOURCE_DIR}/${GLFW_DIR}/lib/glfw3.dll")
     add_custom_command(TARGET GolaGameEngine POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
@@ -51,6 +63,6 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/${GLFW_DIR}/lib/glfw3.dll")
             $<TARGET_FILE_DIR:GolaGameEngine>
             COMMENT "Copying GLFW3 DLL to output directory"
     )
-else()
+else ()
     message(WARNING "GLFW DLL not found at: ${CMAKE_SOURCE_DIR}/${GLFW_DIR}/lib/glfw3.dll")
-endif()
+endif ()

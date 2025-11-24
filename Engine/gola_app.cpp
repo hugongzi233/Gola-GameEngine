@@ -14,6 +14,10 @@ namespace gola {
         swapChain = std::make_unique<GolaSwapChain>(device, extent);
 
         createPipeline();
+        // Initialize ImGui after swapchain and pipeline/renderpass are available
+        imgui = std::make_unique<GolaImgui>();
+        imgui->init(device, *swapChain, window.getGLFWwindow());
+
         // recreateSwapChain();
         createCommandBuffers();
     }
@@ -21,6 +25,10 @@ namespace gola {
     GolaApp::~GolaApp() {
         if (pipeline) {
             vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
+        }
+        if (imgui) {
+            imgui->cleanup();
+            imgui.reset();
         }
     }
 
@@ -30,7 +38,7 @@ namespace gola {
             glfwPollEvents();
             drawFrame();
             // Render and update logic would go here
-            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
         vkDeviceWaitIdle(device.device());
@@ -88,44 +96,22 @@ namespace gola {
         }
 
         for (int i = 0; i < commandBuffers.size(); i++) {
-            VkCommandBufferBeginInfo beginInfo{};
-            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-            if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to begin recording command buffer");
-            }
-
-            VkRenderPassBeginInfo renderPassInfo{};
-            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassInfo.renderPass = swapChain->getRenderPass();
-            renderPassInfo.framebuffer = swapChain->getFrameBuffer(i);
-            renderPassInfo.renderArea.offset = {0, 0};
-            renderPassInfo.renderArea.extent = swapChain->getSwapChainExtent();
-            std::array<VkClearValue, 2> clearValues{};
-            clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
-            clearValues[1].depthStencil = {1.0f, 0};
-            renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-            renderPassInfo.pClearValues = clearValues.data();
-            vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-            pipeline->bind(commandBuffers[i]);
-            //vkCmdDraw(commandBuffers[i], 3, 1, 0, 0); // Example draw call, assuming a triangle
-            model->bind(commandBuffers[i]);
-            model->draw(commandBuffers[i]);
-            vkCmdEndRenderPass(commandBuffers[i]);
-            if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to record command buffer");
-            }
+            recordCommandBuffers(i);
         }
     }
 
     void GolaApp::recordCommandBuffers(int imageIndex) {
+        // Start ImGui frame and build UI for this frame
+        if (imgui) {
+            imgui->newFrame();
+            imgui->buildUI();
+        }
+
         // 重置命令缓冲区
         vkResetCommandBuffer(commandBuffers[imageIndex], 0);
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // 推荐使用
 
         if (vkBeginCommandBuffer(commandBuffers[imageIndex], &beginInfo) != VK_SUCCESS) {
             throw std::runtime_error("Failed to begin recording command buffer");
@@ -137,7 +123,6 @@ namespace gola {
         renderPassInfo.framebuffer = swapChain->getFrameBuffer(imageIndex);
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = swapChain->getSwapChainExtent();
-
         std::array<VkClearValue, 2> clearValues{};
         clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
         clearValues[1].depthStencil = {1.0f, 0};
@@ -150,8 +135,12 @@ namespace gola {
         pipeline->bind(commandBuffers[imageIndex]);
         model->bind(commandBuffers[imageIndex]);
         model->draw(commandBuffers[imageIndex]);
-        //vkCmdDraw(commandBuffers[imageIndex], 3, 1, 0, 0); // Example draw call, assuming a triangle
-        // Draw calls would go here
+
+        // Render ImGui on top
+        if (imgui) {
+            imgui->render(commandBuffers[imageIndex]);
+        }
+
         vkCmdEndRenderPass(commandBuffers[imageIndex]);
 
         if (vkEndCommandBuffer(commandBuffers[imageIndex]) != VK_SUCCESS) {
@@ -179,11 +168,15 @@ namespace gola {
             swapChain.reset();
         }
 
-        // 创建新交换链
         swapChain = std::make_unique<GolaSwapChain>(device, extent);
-
-        // 重新创建管线
         createPipeline();
+
+        // Re-init ImGui to update image count / render pass
+        if (imgui) {
+            imgui->cleanup();
+            imgui->init(device, *swapChain, window.getGLFWwindow());
+        }
+
         createCommandBuffers();
     }
 
@@ -206,6 +199,14 @@ namespace gola {
         } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             throw std::runtime_error("Failed to acquire swap chain image");
         }
+
+        // 等待上一帧的 fence，确保命令缓冲区不在 pending 状态
+        // VkFence fence = swapChain->getInFlightFence(imageIndex);
+        // vkWaitForFences(device.device(), 1, &fence, VK_TRUE, UINT64_MAX);
+        // vkResetFences(device.device(), 1, &fence);
+
+        // Re-record the command buffer for the acquired image so UI and dynamic content are up-to-date
+        recordCommandBuffers(imageIndex);
 
         result = swapChain->submitCommandBuffers(&commandBuffers[imageIndex], &imageIndex);
 
