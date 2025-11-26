@@ -10,45 +10,53 @@
 #include <vector>
 
 namespace gola {
-class GolaRenderer {
- public:
-  GolaRenderer(GolaWindow &window, GolaDevice &device);
-  ~GolaRenderer();
+    class GolaRenderer {
+    public:
+        GolaRenderer(GolaWindow &window, GolaDevice &device);
 
-  GolaRenderer(const GolaRenderer &) = delete;
-  GolaRenderer &operator=(const GolaRenderer &) = delete;
+        ~GolaRenderer();
 
-  VkRenderPass getSwapChainRenderPass() const { return golaSwapChain->getRenderPass(); }
-  float getAspectRatio() const { return golaSwapChain->extentAspectRatio(); }
-  bool isFrameInProgress() const { return isFrameStarted; }
+        GolaRenderer(const GolaRenderer &) = delete;
 
-  VkCommandBuffer getCurrentCommandBuffer() const {
-    assert(isFrameStarted && "Cannot get command buffer when frame not in progress");
-    return commandBuffers[currentFrameIndex];
-  }
+        GolaRenderer &operator=(const GolaRenderer &) = delete;
 
-  int getFrameIndex() const {
-    assert(isFrameStarted && "Cannot get frame index when frame not in progress");
-    return currentFrameIndex;
-  }
+        VkRenderPass getSwapChainRenderPass() const { return golaSwapChain->getRenderPass(); }
+        GolaSwapChain &getSwapChain() { return *golaSwapChain; }
+        float getAspectRatio() const { return golaSwapChain->extentAspectRatio(); }
+        bool isFrameInProgress() const { return isFrameStarted; }
 
-  VkCommandBuffer beginFrame();
-  void endFrame();
-  void beginSwapChainRenderPass(VkCommandBuffer commandBuffer);
-  void endSwapChainRenderPass(VkCommandBuffer commandBuffer);
+        VkCommandBuffer getCurrentCommandBuffer() const {
+            assert(isFrameStarted && "Cannot get command buffer when frame not in progress");
+            return commandBuffers[currentFrameIndex];
+        }
 
- private:
-  void createCommandBuffers();
-  void freeCommandBuffers();
-  void recreateSwapChain();
+        int getFrameIndex() const {
+            assert(isFrameStarted && "Cannot get frame index when frame not in progress");
+            return currentFrameIndex;
+        }
 
-  GolaWindow &golaWindow;
-  GolaDevice &golaDevice;
-  std::unique_ptr<GolaSwapChain> golaSwapChain;
-  std::vector<VkCommandBuffer> commandBuffers;
+        VkCommandBuffer beginFrame();
 
-  uint32_t currentImageIndex;
-  int currentFrameIndex{0};
-  bool isFrameStarted{false};
-};
-}  // namespace gola
+        void endFrame();
+
+        void beginSwapChainRenderPass(VkCommandBuffer commandBuffer);
+
+        void endSwapChainRenderPass(VkCommandBuffer commandBuffer);
+
+    private:
+        void createCommandBuffers();
+
+        void freeCommandBuffers();
+
+        void recreateSwapChain();
+
+        GolaWindow &golaWindow;
+        GolaDevice &golaDevice;
+        std::unique_ptr<GolaSwapChain> golaSwapChain;
+        std::vector<VkCommandBuffer> commandBuffers;
+
+        uint32_t currentImageIndex;
+        int currentFrameIndex{0};
+        bool isFrameStarted{false};
+    };
+} // namespace gola

@@ -3,16 +3,12 @@
 #include "Window/gola_window.hpp"
 #include "Core/gola_pipeline.hpp"
 #include "Core/gola_device.hpp"
-#include "Core/gola_swap_chain.hpp"
 #include "Core/gola_game_object.hpp"
+#include "Core/gola_renderer.hpp"
 #include "UI/gola_imgui.hpp"
 
 #include <memory>
 #include <vector>
-#include <stdexcept>
-#include <array>
-
-#include "Core/gola_renderer.hpp"
 
 namespace gola {
     class GolaApp {
@@ -29,24 +25,13 @@ namespace gola {
         void run();
 
     private:
+        void initImgui();
         void loadGameObjects();
-        void createPipelineLayout();
-        void createPipeline();
-        void createCommandBuffers();
-        void freeCommandBuffers();
-        void drawFrame();
-        void recreateSwapChain();
-        void recordCommandBuffers(int imageIndex);
-        void renderGameObjects(VkCommandBuffer commandBuffer);
 
         GolaWindow window{WIDTH, HEIGHT, "Gola GameEngine Application"};
         GolaDevice device{window};
-        // GolaRenderer lveRenderer{window, device};
+        GolaRenderer renderer{window, device};
 
-        std::unique_ptr<GolaSwapChain> swapChain;
-        std::unique_ptr<GolaPipeline> pipeline = nullptr;
-        VkPipelineLayout pipelineLayout;
-        std::vector<VkCommandBuffer> commandBuffers;
         std::vector<GolaGameObject> gameobjects;
         std::unique_ptr<GolaImgui> imgui;
     };
