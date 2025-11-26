@@ -72,15 +72,19 @@ namespace gola {
     }
 
     void GolaApp::createPipeline() {
-        auto pipelineConfigInfo = GolaPipeline::defaultPipelineConfigInfo(swapChain->width(), swapChain->height());
+        assert(swapChain!=nullptr&& "Cannot create pipeline before swap chain");
+        assert(pipelineLayout!=nullptr&& "Cannot create pipeline before pipeline layout");
+
+        PipelineConfigInfo pipelineConfig{};
+        GolaPipeline::defaultPipelineConfigInfo(pipelineConfig);
         //PipelineConfigInfo configInfo = GolaPipeline::defaultPipelineConfigInfo(WIDTH, HEIGHT);
-        pipelineConfigInfo.renderPass = swapChain->getRenderPass();
-        pipelineConfigInfo.pipelineLayout = pipelineLayout;
+        pipelineConfig.renderPass = swapChain->getRenderPass();
+        pipelineConfig.pipelineLayout = pipelineLayout;
         pipeline = std::make_unique<GolaPipeline>(
             device,
             "Engine/shaders/simple_shader.vert.spv",
             "Engine/shaders/simple_shader.frag.spv",
-            pipelineConfigInfo);
+            pipelineConfig);
     }
 
     void GolaApp::createCommandBuffers() {
@@ -99,6 +103,15 @@ namespace gola {
         for (int i = 0; i < commandBuffers.size(); i++) {
             recordCommandBuffers(i);
         }
+    }
+
+    void GolaApp::freeCommandBuffers() {
+        vkFreeCommandBuffers(
+            device.device(),
+            device.getCommandPool(),
+            static_cast<uint32_t>(commandBuffers.size()),
+            commandBuffers.data());
+        commandBuffers.clear();
     }
 
     void GolaApp::recordCommandBuffers(int imageIndex) {
@@ -131,7 +144,16 @@ namespace gola {
         renderPassInfo.pClearValues = clearValues.data();
         vkCmdBeginRenderPass(commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        //vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipeline());
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(swapChain->getSwapChainExtent().width);
+        viewport.height = static_cast<float>(swapChain->getSwapChainExtent().height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        VkRect2D scissor{{0, 0}, swapChain->getSwapChainExtent()};
+        vkCmdSetViewport(commandBuffers[imageIndex], 0, 1, &viewport);
+        vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
 
         pipeline->bind(commandBuffers[imageIndex]);
         model->bind(commandBuffers[imageIndex]);
@@ -169,10 +191,17 @@ namespace gola {
             swapChain.reset();
         }
 
-        swapChain = std::make_unique<GolaSwapChain>(device, extent);
-        createPipeline();
+        if (swapChain == nullptr) {
+            swapChain = std::make_unique<GolaSwapChain>(device, extent);
+        } else {
+            swapChain = std::make_unique<GolaSwapChain>(device, extent, std::move(swapChain));
+            if (swapChain->imageCount() != commandBuffers.size()) {
+                freeCommandBuffers();
+                createCommandBuffers();
+            }
+        }
 
-        // Re-init ImGui to update image count / render pass
+        createPipeline();
         if (imgui) {
             imgui->cleanup();
             imgui->init(device, *swapChain, window.getGLFWwindow());
@@ -197,7 +226,8 @@ namespace gola {
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             recreateSwapChain();
             return;
-        } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        }
+        if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             throw std::runtime_error("Failed to acquire swap chain image");
         }
 

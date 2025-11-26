@@ -4,40 +4,47 @@
 #include <string>
 
 namespace gola {
-	class GolaWindow {
-	public:
-		GolaWindow(int width, int height, const std::string& title);
-		~GolaWindow();
+    class GolaWindow {
+    public:
+        GolaWindow(int width, int height, const std::string &title);
 
-		// TODO HERE: maybe remove this function
-		bool resetWindowResizedFlag() const { return framebufferResized; }
+        ~GolaWindow();
 
-		GolaWindow(const GolaWindow&) = delete;
-		GolaWindow& operator=(const GolaWindow&) = delete;
+        void resetWindowResizedFlag() { framebufferResized = false; }
 
-		bool shouldClose() const {
-			return glfwWindowShouldClose(window);
-		}
-		bool wasWindowResized() { return framebufferResized; }
-		VkExtent2D getExtent() { return { static_cast<uint32_t>(width),static_cast<uint32_t>(height) }; }
-		bool wasFramebufferResized() {
-			return framebufferResized;
-		}
-		void resetFramebufferResizedFlag() {
-			framebufferResized = false;
-		}
+        GolaWindow(const GolaWindow &) = delete;
 
-		void createWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
-		GLFWwindow* getGLFWwindow() const { return window; }
+        GolaWindow &operator=(const GolaWindow &) = delete;
 
-	private:
-		static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
-		void initWindow();
-		 int width;
-		 int height;
-		 bool framebufferResized = false;
+        bool shouldClose() const {
+            return glfwWindowShouldClose(window);
+        }
 
-		std::string windowTitle;
-		GLFWwindow* window;
-	};
+        bool wasWindowResized() { return framebufferResized; }
+        VkExtent2D getExtent() { return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}; }
+
+        bool wasFramebufferResized() {
+            return framebufferResized;
+        }
+
+        void resetFramebufferResizedFlag() {
+            framebufferResized = false;
+        }
+
+        void createWindowSurface(VkInstance instance, VkSurfaceKHR *surface);
+
+        GLFWwindow *getGLFWwindow() const { return window; }
+
+    private:
+        static void framebufferResizeCallback(GLFWwindow *window, int width, int height);
+
+        void initWindow();
+
+        int width;
+        int height;
+        bool framebufferResized = false;
+
+        std::string windowTitle;
+        GLFWwindow *window;
+    };
 }

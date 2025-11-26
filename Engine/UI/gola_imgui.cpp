@@ -14,7 +14,6 @@
 #include <vector>
 
 namespace gola {
-
     static VkDescriptorPool createImguiDescriptorPool(VkDevice device) {
         // Create a descriptor pool following the ImGui example recommended sizes
         VkDescriptorPoolSize pool_sizes[] = {
@@ -51,7 +50,8 @@ namespace gola {
         // Setup ImGui context
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
-        ImGuiIO &io = ImGui::GetIO(); (void)io;
+        ImGuiIO &io = ImGui::GetIO();
+        (void) io;
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         //ImGui::StyleColorsDark();
         setupCustomFont();
@@ -83,7 +83,7 @@ namespace gola {
         // Upload Fonts - current backend creates fonts automatically on NewFrame but call manually to be safe
         ImGui_ImplVulkan_SetMinImageCount(static_cast<uint32_t>(swapChain.imageCount()));
 
-        std::print("Imgui initialized");
+        std::println("Imgui initialized");
     }
 
     void GolaImgui::newFrame() {
@@ -93,12 +93,13 @@ namespace gola {
     }
 
     void GolaImgui::setupCustomFont() {
-        ImGuiIO& io = ImGui::GetIO();
-        io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 18.0f, nullptr, io.Fonts->GetGlyphRangesChineseFull());
+        ImGuiIO &io = ImGui::GetIO();
+        io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 18.0f, nullptr,
+                                     io.Fonts->GetGlyphRangesChineseFull());
     }
 
     void GolaImgui::setupCustomStyle() {
-        ImGuiStyle& style = ImGui::GetStyle();
+        ImGuiStyle &style = ImGui::GetStyle();
 
         // 圆角
         style.WindowRounding = 5.0f;
@@ -107,7 +108,7 @@ namespace gola {
         style.PopupRounding = 5.0f;
 
         // 颜色
-        ImVec4* colors = style.Colors;
+        ImVec4 *colors = style.Colors;
         colors[ImGuiCol_WindowBg] = ImVec4(0.08f, 0.08f, 0.08f, 0.94f);
         colors[ImGuiCol_TitleBg] = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
         colors[ImGuiCol_TitleBgActive] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
@@ -131,11 +132,9 @@ namespace gola {
         ImGui::End();
 
         // 3. Performance window
-        if (showPerformanceWindow) {
-            ImGui::Begin("Performance", &showPerformanceWindow);
-            ImGui::Text("Performance graphs would go here测试");
-            ImGui::End();
-        }
+        ImGui::Begin("Performance", &showPerformanceWindow);
+        ImGui::Text("Performance graphs would go here测试");
+        ImGui::End();
     }
 
     void GolaImgui::render(VkCommandBuffer commandBuffer) {
@@ -154,5 +153,4 @@ namespace gola {
             imguiDescriptorPool = VK_NULL_HANDLE;
         }
     }
-
 } // namespace gola
