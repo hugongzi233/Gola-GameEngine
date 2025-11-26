@@ -13,6 +13,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include "glm.hpp"
+
 namespace gola {
     static VkDescriptorPool createImguiDescriptorPool(VkDevice device) {
         // Create a descriptor pool following the ImGui example recommended sizes
@@ -101,19 +103,99 @@ namespace gola {
     void GolaImgui::setupCustomStyle() {
         ImGuiStyle &style = ImGui::GetStyle();
 
-        // 圆角
-        style.WindowRounding = 5.0f;
-        style.FrameRounding = 3.0f;
-        style.GrabRounding = 3.0f;
-        style.PopupRounding = 5.0f;
+        // 圆角设置
+        style.WindowRounding = 0.0f;
+        style.ChildRounding = 8.0f;
+        style.FrameRounding = 6.0f;
+        style.PopupRounding = 8.0f;
+        style.ScrollbarRounding = 6.0f;
+        style.GrabRounding = 6.0f;
+        style.TabRounding = 6.0f;
 
-        // 颜色
+        // 边框大小
+        style.WindowBorderSize = 0.0f;
+        style.FrameBorderSize = 0.0f;
+        style.PopupBorderSize = 0.0f;
+
+        // 内边距和间距
+        style.WindowPadding = ImVec2(12.0f, 12.0f);
+        style.FramePadding = ImVec2(12.0f, 6.0f);
+        style.ItemSpacing = ImVec2(8.0f, 6.0f);
+        style.ItemInnerSpacing = ImVec2(6.0f, 4.0f);
+
+        // 颜色配置 - 现代深色主题
         ImVec4 *colors = style.Colors;
-        colors[ImGuiCol_WindowBg] = ImVec4(0.08f, 0.08f, 0.08f, 0.94f);
-        colors[ImGuiCol_TitleBg] = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
-        colors[ImGuiCol_TitleBgActive] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
-        colors[ImGuiCol_Button] = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
-        colors[ImGuiCol_ButtonHovered] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+
+        // 基础颜色
+        colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+        colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+
+        // 窗口颜色
+        colors[ImGuiCol_WindowBg] = ImVec4(0.10f, 0.10f, 0.10f, 0.98f);
+        colors[ImGuiCol_ChildBg] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
+        colors[ImGuiCol_PopupBg] = ImVec4(0.11f, 0.11f, 0.11f, 0.94f);
+
+        // 边框颜色
+        colors[ImGuiCol_Border] = ImVec4(0.25f, 0.25f, 0.25f, 0.50f);
+        colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+
+        // 框架颜色
+        colors[ImGuiCol_FrameBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+        colors[ImGuiCol_FrameBgHovered] = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+        colors[ImGuiCol_FrameBgActive] = ImVec4(0.30f, 0.30f, 0.30f, 1.00f);
+
+        // 标题栏颜色
+        colors[ImGuiCol_TitleBg] = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
+        colors[ImGuiCol_TitleBgActive] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
+        colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.08f, 0.08f, 0.08f, 0.75f);
+
+        // 菜单栏颜色
+        colors[ImGuiCol_MenuBarBg] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
+
+        // 滚动条颜色
+        colors[ImGuiCol_ScrollbarBg] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+        colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.35f, 0.35f, 0.35f, 1.00f);
+        colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.45f, 0.45f, 0.45f, 1.00f);
+        colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.55f, 0.55f, 0.55f, 1.00f);
+
+        // 按钮颜色 - 使用青色作为主色调
+        colors[ImGuiCol_Button] = ImVec4(0.00f, 0.65f, 0.80f, 0.60f);
+        colors[ImGuiCol_ButtonHovered] = ImVec4(0.00f, 0.75f, 0.90f, 1.00f);
+        colors[ImGuiCol_ButtonActive] = ImVec4(0.00f, 0.55f, 0.70f, 1.00f);
+
+        // 复选框颜色
+        colors[ImGuiCol_CheckMark] = ImVec4(0.00f, 0.65f, 0.80f, 1.00f);
+
+        // 滑块颜色
+        colors[ImGuiCol_SliderGrab] = ImVec4(0.00f, 0.65f, 0.80f, 0.60f);
+        colors[ImGuiCol_SliderGrabActive] = ImVec4(0.00f, 0.75f, 0.90f, 1.00f);
+
+        // 标签颜色
+        colors[ImGuiCol_Tab] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+        colors[ImGuiCol_TabHovered] = ImVec4(0.00f, 0.65f, 0.80f, 0.80f);
+        colors[ImGuiCol_TabActive] = ImVec4(0.00f, 0.65f, 0.80f, 1.00f);
+        colors[ImGuiCol_TabUnfocused] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+        colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+
+        // 标题颜色
+        colors[ImGuiCol_Header] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+        colors[ImGuiCol_HeaderHovered] = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+        colors[ImGuiCol_HeaderActive] = ImVec4(0.30f, 0.30f, 0.30f, 1.00f);
+
+        // 分隔线颜色
+        colors[ImGuiCol_Separator] = ImVec4(0.30f, 0.30f, 0.30f, 1.00f);
+        colors[ImGuiCol_SeparatorHovered] = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
+        colors[ImGuiCol_SeparatorActive] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+
+        // 调整大小手柄颜色
+        colors[ImGuiCol_ResizeGrip] = ImVec4(0.35f, 0.35f, 0.35f, 0.30f);
+        colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.00f, 0.65f, 0.80f, 0.60f);
+        colors[ImGuiCol_ResizeGripActive] = ImVec4(0.00f, 0.75f, 0.90f, 1.00f);
+
+        // 表格颜色
+        colors[ImGuiCol_TableHeaderBg] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+        colors[ImGuiCol_TableBorderStrong] = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+        colors[ImGuiCol_TableBorderLight] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
     }
 
     void GolaImgui::buildUI() {
@@ -127,7 +209,7 @@ namespace gola {
         // 2. Controls panel
         ImGui::Begin("Controls");
         ImGui::SliderFloat("Exposure", &exposure, 0.1f, 5.0f);
-        ImGui::ColorEdit3("Clear Color", clearColor);
+        ImGui::ColorEdit3("Main Color", mainColor);
         ImGui::Checkbox("VSync", &vsyncEnabled);
         ImGui::End();
 
@@ -153,4 +235,8 @@ namespace gola {
             imguiDescriptorPool = VK_NULL_HANDLE;
         }
     }
-} // namespace gola
+
+    glm::vec3 GolaImgui::getMainColor() {
+        return glm::vec3(mainColor[0], mainColor[1], mainColor[2]);
+    }
+}

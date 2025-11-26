@@ -28,7 +28,8 @@ add_executable(GolaGameEngine main.cpp
         Engine/gola_app.cpp
         Engine/Core/gola_renderer.cpp
         Engine/UI/gola_imgui.cpp
-        ${IMGUI_SOURCES})
+        ${IMGUI_SOURCES}
+        Engine/Core/gola_game_object.hpp)
 
 find_library(GLFW_LIB
         NAMES glfw3dll glfw3

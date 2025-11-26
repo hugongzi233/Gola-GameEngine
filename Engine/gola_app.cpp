@@ -1,12 +1,24 @@
 #include "gola_app.hpp"
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm.hpp>
+#include <gtc/constants.hpp>
+
 #include <chrono>
 #include <iostream>
 #include <thread>
 
 namespace gola {
+    struct SimplePushConstantData {
+        glm::mat2 transform{1.0f};
+
+        glm::vec2 offset;
+        alignas(16) glm::vec3 color;
+    };
+
     GolaApp::GolaApp() {
-        loadModels();
+        loadGameObjects();
         createPipelineLayout();
 
         auto extent = window.getExtent();
@@ -45,27 +57,36 @@ namespace gola {
         vkDeviceWaitIdle(device.device());
     }
 
-    void GolaApp::loadModels() {
+    void GolaApp::loadGameObjects() {
         std::vector<GolaModel::Vertex> vertices = {
-            // first triangle
-            {{-0.9f, -0.9f}, {1.0f, 0.0f, 0.0f}}, // v0
-            {{0.9f, -0.9f}, {1.0f, 0.0f, 0.0f}}, // v1
-            {{0.9f, 0.9f}, {0.0f, 1.0f, 0.0f}}, // v2
-            // second triangle
-            {{0.9f, 0.9f}, {0.0f, 1.0f, 0.0f}}, // v2
-            {{-0.9f, 0.9f}, {0.0f, 0.0f, 1.0f}}, // v3
-            {{-0.9f, -0.9f}, {1.0f, 0.0f, 0.0f}}, // v0
+            {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}}, // v0
+            {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}}, // v1
+            {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}, // v2
         };
-        model = std::make_unique<GolaModel>(device, vertices);
+        auto model = std::make_shared<GolaModel>(device, vertices);
+
+        auto triangle = GolaGameObject::createGameObject();
+        triangle.model = model;
+        triangle.color = {0.1f, 0.1f, 0.1f};
+        triangle.transform2d.translation.x = 0.f;
+        triangle.transform2d.scale = {2.0f, 0.5f};
+        triangle.transform2d.rotation = 0.25f * glm::two_pi<float>();
+
+        gameobjects.push_back(std::move(triangle));
     }
 
     void GolaApp::createPipelineLayout() {
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(SimplePushConstantData);
+
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 0;
         pipelineLayoutInfo.pSetLayouts = nullptr; // No descriptor sets for now
-        pipelineLayoutInfo.pushConstantRangeCount = 0; // No push constants for now
-        pipelineLayoutInfo.pPushConstantRanges = nullptr; // No push constants for now
+        pipelineLayoutInfo.pushConstantRangeCount = 1; // No push constants for now
+        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange; // No push constants for now
         if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create pipeline layout");
         }
@@ -124,6 +145,10 @@ namespace gola {
         // 重置命令缓冲区
         vkResetCommandBuffer(commandBuffers[imageIndex], 0);
 
+        // anim test
+        static int frame = 0;
+        frame = (frame + 1) % 500;
+
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -138,7 +163,7 @@ namespace gola {
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = swapChain->getSwapChainExtent();
         std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
+        clearValues[0].color = {0.01f, 0.01f, 0.01f, 1.0f};
         clearValues[1].depthStencil = {1.0f, 0};
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
@@ -155,9 +180,7 @@ namespace gola {
         vkCmdSetViewport(commandBuffers[imageIndex], 0, 1, &viewport);
         vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
 
-        pipeline->bind(commandBuffers[imageIndex]);
-        model->bind(commandBuffers[imageIndex]);
-        model->draw(commandBuffers[imageIndex]);
+        renderGameObjects(commandBuffers[imageIndex]);
 
         // Render ImGui on top
         if (imgui) {
@@ -209,6 +232,31 @@ namespace gola {
 
         createCommandBuffers();
     }
+
+    void GolaApp::renderGameObjects(VkCommandBuffer commandBuffer) {
+        pipeline->bind(commandBuffer);
+
+        for (auto &obj: gameobjects) {
+            obj.transform2d.rotation = glm::mod(obj.transform2d.rotation + 0.01f, glm::two_pi<float>());
+
+            SimplePushConstantData push{};
+            push.offset = obj.transform2d.translation;
+            push.color = imgui->getMainColor();
+            push.transform = obj.transform2d.mat2();
+
+            vkCmdPushConstants(
+                commandBuffer,
+                pipelineLayout,
+                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                0,
+                sizeof(SimplePushConstantData),
+                &push);
+
+            obj.model->bind(commandBuffer);
+            obj.model->draw(commandBuffer);
+        }
+    }
+
 
     void GolaApp::drawFrame() {
         // static int frameCount = 0;

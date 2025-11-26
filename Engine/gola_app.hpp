@@ -4,7 +4,7 @@
 #include "Core/gola_pipeline.hpp"
 #include "Core/gola_device.hpp"
 #include "Core/gola_swap_chain.hpp"
-#include "Core/gola_model.hpp"
+#include "Core/gola_game_object.hpp"
 #include "UI/gola_imgui.hpp"
 
 #include <memory>
@@ -29,7 +29,7 @@ namespace gola {
         void run();
 
     private:
-        void loadModels();
+        void loadGameObjects();
         void createPipelineLayout();
         void createPipeline();
         void createCommandBuffers();
@@ -37,6 +37,7 @@ namespace gola {
         void drawFrame();
         void recreateSwapChain();
         void recordCommandBuffers(int imageIndex);
+        void renderGameObjects(VkCommandBuffer commandBuffer);
 
         GolaWindow window{WIDTH, HEIGHT, "Gola GameEngine Application"};
         GolaDevice device{window};
@@ -46,7 +47,7 @@ namespace gola {
         std::unique_ptr<GolaPipeline> pipeline = nullptr;
         VkPipelineLayout pipelineLayout;
         std::vector<VkCommandBuffer> commandBuffers;
-        std::unique_ptr<GolaModel> model;
+        std::vector<GolaGameObject> gameobjects;
         std::unique_ptr<GolaImgui> imgui;
     };
 }

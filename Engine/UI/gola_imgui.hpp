@@ -4,6 +4,7 @@
 #pragma once
 
 #include "imgui.h"
+#include "vec3.hpp"
 
 #include "../Core/gola_device.hpp"
 #include "../Core/gola_swap_chain.hpp"
@@ -39,6 +40,8 @@ namespace gola {
         // Cleanup ImGui resources
         void cleanup();
 
+        glm::vec3 getMainColor();
+
     private:
         void createDescriptorPool(VkDevice device);
 
@@ -49,7 +52,7 @@ namespace gola {
         int triangleCount = 2;
         int drawCallCount = 1;
         float exposure = 1.0f;
-        float clearColor[3] = {0.1f, 0.1f, 0.1f};
+        float mainColor[3] = {0.1f, 0.1f, 0.1f};
         bool vsyncEnabled = true;
         bool showPerformanceWindow = true;
     };
