@@ -11,6 +11,7 @@
 
 #include "Core/render_system.hpp"
 #include "Core/gola_camera.hpp"
+#include "Core/keyboard_movement_controller.hpp"
 
 namespace gola {
     GolaApp::GolaApp() {
@@ -25,10 +26,23 @@ namespace gola {
         RenderSystem renderSystem(device, renderer.getSwapChainRenderPass(), imgui.get());
 
         GolaCamera camera{};
+        auto viewObject = GolaGameObject::createGameObject();
+        KeyboardMovementController cameraController{};
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
 
         // 主循环逻辑
         while (!window.shouldClose()) {
             glfwPollEvents();
+
+            auto newTime = std::chrono::high_resolution_clock::now();
+            float frameTime =
+                    std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
+            currentTime = newTime;
+            frameTime = glm::min(frameTime, 0.1f);
+
+            cameraController.moveInPlaneXZ(window.getGLFWwindow(), frameTime, viewObject);
+            camera.setViewYXZ(viewObject.transform.translation,viewObject.transform.rotation);
 
             float aspect = renderer.getAspectRatio();
             // camera.setOrthographicProjection(-aspect, aspect, -1, 1, -1, 1);

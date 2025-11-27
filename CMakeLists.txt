@@ -33,7 +33,8 @@ add_executable(GolaGameEngine main.cpp
         ${IMGUI_SOURCES}
         Engine/Core/gola_game_object.hpp
         Engine/Core/render_system.cpp
-        Engine/Core/gola_camera.cpp)
+        Engine/Core/gola_camera.cpp
+        Engine/Core/keyboard_movement_controller.cpp)
 
 find_library(GLFW_LIB
         NAMES glfw3dll glfw3
