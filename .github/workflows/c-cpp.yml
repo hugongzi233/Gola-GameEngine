@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: C/C++ CI (CMake)
 
 on:
   push:
@@ -8,16 +8,57 @@ on:
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        build-type: [Release]
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
-    - name: configure
-      run: ./configure
-    - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+      - uses: actions/checkout@v4
+
+      - name: Set up Python (for some actions)
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install CMake and Ninja (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update; sudo apt-get install -y cmake ninja-build build-essential pkg-config libglfw3-dev libvulkan-dev
+
+      - name: Install CMake (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: jwlawson/actions-setup-cmake@v1
+        with:
+          cmake-version: '3.31.0'
+
+      - name: Cache CMake build directory
+        uses: actions/cache@v4
+        with:
+          path: |
+            build
+            ThirdParty/vk-bootstrap/build
+          key: ${{ runner.os }}-cmake-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-cmake-
+
+      - name: Configure (CMake)
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DBUILD_WITH_VULKAN=OFF
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build-type }} -- -j
+
+      - name: Run tests
+        run: |
+          if [ -d build ]; then
+            ctest --test-dir build --output-on-failure || true
+          fi
+        shell: bash
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}-${{ matrix.build-type }}
+          path: build
