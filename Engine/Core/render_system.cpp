@@ -11,6 +11,8 @@
 #include <cassert>
 #include <stdexcept>
 
+#include "gola_camera.hpp"
+
 namespace gola {
     struct SimplePushConstantData {
         glm::mat4 transform{1.0f};
@@ -62,7 +64,7 @@ namespace gola {
 
     void gola::RenderSystem::renderGameObjects(
         VkCommandBuffer commandBuffer,
-        std::vector<GolaGameObject> &gameObjects) {
+        std::vector<GolaGameObject> &gameObjects, const GolaCamera &camera) {
         golaPipeline->bind(commandBuffer);
         for (auto &obj: gameObjects) {
             obj.transform.rotation.y = glm::mod(obj.transform.rotation.y + 0.01f, glm::two_pi<float>());
@@ -70,7 +72,7 @@ namespace gola {
 
             SimplePushConstantData push{};
             push.color = obj.color;
-            push.transform = obj.transform.mat4();
+            push.transform = camera.getProjection() * obj.transform.mat4();
 
             vkCmdPushConstants(
                 commandBuffer,

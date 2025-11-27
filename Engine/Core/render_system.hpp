@@ -11,6 +11,8 @@
 #include "../UI/gola_imgui.hpp"
 
 namespace gola {
+    class GolaCamera;
+
     class RenderSystem {
     public:
         RenderSystem(
@@ -24,7 +26,8 @@ namespace gola {
 
         void renderGameObjects(
             VkCommandBuffer commandBuffer,
-            std::vector<GolaGameObject> &gameObjects);
+            std::vector<GolaGameObject> &gameObjects,
+            const GolaCamera &camera);
 
         void renderImgui(VkCommandBuffer commandBuffer);
 

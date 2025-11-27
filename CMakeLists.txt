@@ -5,15 +5,8 @@ set(CMAKE_CXX_STANDARD 26)
 #set(CMAKE_EXE_LINKER_FLAGS "-static")
 set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 
-# Option to disable Vulkan for CI or platforms without the SDK
-option(BUILD_WITH_VULKAN "Build with Vulkan support" OFF)
 
-# Allow VK_SDK_DIR to be provided externally; fall back only when Vulkan is enabled
-if(BUILD_WITH_VULKAN)
-    if(NOT DEFINED VK_SDK_DIR)
-        set(VK_SDK_DIR C:/VulkanSDK/1.4.313.2)
-    endif()
-endif()
+set(VK_SDK_DIR C:/VulkanSDK/1.4.313.2)
 
 set(GLFW_DIR ThirdParty/glfw-3.4)
 set(GLM_DIR ThirdParty/glm-1.0.2)
@@ -39,7 +32,8 @@ add_executable(GolaGameEngine main.cpp
         Engine/UI/gola_imgui.cpp
         ${IMGUI_SOURCES}
         Engine/Core/gola_game_object.hpp
-        Engine/Core/render_system.cpp)
+        Engine/Core/render_system.cpp
+        Engine/Core/gola_camera.cpp)
 
 find_library(GLFW_LIB
         NAMES glfw3dll glfw3
@@ -59,23 +53,17 @@ include_directories(
 link_directories(${GLFW_DIR}/lib
         ${VK_BOOTSTRAP_DIR}/build)
 
-# If Vulkan is enabled, configure include/link dirs and vk-bootstrap
-if(BUILD_WITH_VULKAN)
-    include_directories(${VK_SDK_DIR}/Include)
-    link_directories(${VK_SDK_DIR}/Lib)
-    add_subdirectory(ThirdParty/vk-bootstrap)
-endif()
 
-# Link libraries. Vulkan-related libs are conditional.
-if(BUILD_WITH_VULKAN)
-    target_link_libraries(GolaGameEngine
-            ${GLFW_LIB}
-            ${VK_SDK_DIR}/Lib/vulkan-1.lib
-            vk-bootstrap::vk-bootstrap)
-else()
-    target_link_libraries(GolaGameEngine
-            ${GLFW_LIB})
-endif()
+include_directories(${VK_SDK_DIR}/Include)
+link_directories(${VK_SDK_DIR}/Lib)
+add_subdirectory(ThirdParty/vk-bootstrap)
+
+
+target_link_libraries(GolaGameEngine
+        ${GLFW_LIB}
+        ${VK_SDK_DIR}/Lib/vulkan-1.lib
+        vk-bootstrap::vk-bootstrap)
+
 
 if (EXISTS "${CMAKE_SOURCE_DIR}/${GLFW_DIR}/lib/glfw3.dll")
     message(STATUS "GLFW DLL found: ${CMAKE_SOURCE_DIR}/${GLFW_DIR}/lib/glfw3.dll")
