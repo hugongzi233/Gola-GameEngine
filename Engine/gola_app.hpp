@@ -13,19 +13,22 @@
 namespace gola {
     class GolaApp {
     public:
-        static constexpr int WIDTH = 1920;
-        static constexpr int HEIGHT = 1080;
+        static constexpr int WIDTH = 800;
+        static constexpr int HEIGHT = 800;
 
         GolaApp();
+
         ~GolaApp();
 
         GolaApp(const GolaApp &) = delete;
+
         GolaApp &operator=(const GolaApp &) = delete;
 
         void run();
 
     private:
         void initImgui();
+
         void loadGameObjects();
 
         GolaWindow window{WIDTH, HEIGHT, "Gola GameEngine Application"};

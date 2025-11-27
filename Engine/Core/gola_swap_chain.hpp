@@ -13,8 +13,10 @@ namespace gola {
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
         GolaSwapChain(GolaDevice &deviceRef, VkExtent2D windowExtent);
+
         GolaSwapChain(
             GolaDevice &deviceRef, VkExtent2D windowExtent, std::shared_ptr<GolaSwapChain> previous);
+
         ~GolaSwapChain();
 
         GolaSwapChain(const GolaSwapChain &) = delete;

@@ -39,22 +39,68 @@ namespace gola {
         vkDeviceWaitIdle(device.device());
     }
 
-    void GolaApp::loadGameObjects() {
+    std::unique_ptr<GolaModel> createCubeModel(GolaDevice &device, glm::vec3 offset) {
         std::vector<GolaModel::Vertex> vertices = {
-            {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}}, // v0
-            {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}}, // v1
-            {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}, // v2
+            // left face (white)
+            {{-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+            {{-0.5f, -0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}},
+            {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}},
+            {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}},
+            {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+            {{-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+            // right face (yellow)
+            {{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 0.0f}},
+            {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 0.0f}},
+            {{0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 0.0f}},
+            {{0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 0.0f}},
+            {{0.5f, -0.5f, 0.5f}, {1.0f, 1.0f, 0.0f}},
+            {{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 0.0f}},
+            // top face (blue)
+            {{-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}},
+            {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+            {{0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+            {{0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+            {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}},
+            {{-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}},
+            // bottom face (green)
+            {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+            {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+            {{0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+            {{0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+            {{-0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+            {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+            // front face (red)
+            {{-0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
+            {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
+            {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
+            {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
+            {{-0.5f, 0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
+            {{-0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
+            // back face (cyan)
+            {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f}},
+            {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 1.0f}},
+            {{0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 1.0f}},
+            {{0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 1.0f}},
+            {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f}},
+            {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f}},
         };
-        auto model = std::make_shared<GolaModel>(device, vertices);
+        for (auto &v: vertices) {
+            v.position += offset;
+        }
 
-        auto triangle = GolaGameObject::createGameObject();
-        triangle.model = model;
-        triangle.color = {0.1f, 0.1f, 0.1f};
-        triangle.transform2d.translation.x = 0.f;
-        triangle.transform2d.scale = {2.0f, 0.5f};
-        triangle.transform2d.rotation = 0.25f * glm::two_pi<float>();
+        return std::make_unique<GolaModel>(device, vertices);
+    }
 
-        gameobjects.push_back(std::move(triangle));
+    void GolaApp::loadGameObjects() {
+        std::shared_ptr<GolaModel> cubeModel = createCubeModel(device, glm::vec3(0.0f, 0.0f, 0.0f));
+
+        for (int i = 0; i < 5; i++) {
+            auto gameObject = GolaGameObject::createGameObject();
+            gameObject.model = cubeModel;
+            gameObject.transform.translation = glm::vec3(0.0f, 0.0f, 0.5f);
+            gameObject.transform.scale = glm::vec3(0.5f, 0.5f, 0.5f);
+            gameobjects.push_back(std::move(gameObject));
+        }
     }
 
     void GolaApp::initImgui() {

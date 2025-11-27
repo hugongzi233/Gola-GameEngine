@@ -15,6 +15,10 @@
 
 #include "glm.hpp"
 
+// New includes for file-system font lookup and logging
+#include <filesystem>
+#include <iostream>
+
 namespace gola {
     static VkDescriptorPool createImguiDescriptorPool(VkDevice device) {
         // Create a descriptor pool following the ImGui example recommended sizes
@@ -96,8 +100,37 @@ namespace gola {
 
     void GolaImgui::setupCustomFont() {
         ImGuiIO &io = ImGui::GetIO();
-        io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 18.0f, nullptr,
-                                     io.Fonts->GetGlyphRangesChineseFull());
+
+        // Prefer the project's bundled font: Engine/Resource/Fonts/AlibabaPuHuiTi-3-55-Regular.ttf
+        const std::string fontFileName = "AlibabaPuHuiTi-3-55-Regular.ttf";
+        const std::filesystem::path relativeFontPath = "Engine/Resource/Fonts";
+
+        std::vector<std::filesystem::path> candidates;
+
+        candidates.push_back(std::filesystem::current_path() / relativeFontPath / fontFileName);
+        candidates.push_back(std::filesystem::current_path() / "Resource/Fonts" / fontFileName);
+
+        const std::filesystem::path windowsFallback = "C:/Windows/Fonts/msyh.ttc";
+
+        std::filesystem::path chosen;
+        for (const auto &p : candidates) {
+            if (std::filesystem::exists(p)) {
+                chosen = p;
+                break;
+            }
+        }
+
+        if (!chosen.empty()) {
+            io.Fonts->AddFontFromFileTTF(chosen.string().c_str(), 18.0f, nullptr,
+                                         io.Fonts->GetGlyphRangesChineseFull());
+            std::cout << "Loaded ImGui font: " << chosen.string() << std::endl;
+        } else if (std::filesystem::exists(windowsFallback)) {
+            io.Fonts->AddFontFromFileTTF(windowsFallback.string().c_str(), 18.0f, nullptr,
+                                         io.Fonts->GetGlyphRangesChineseFull());
+            std::cout << "Bundled font not found; loaded fallback: " << windowsFallback.string() << std::endl;
+        } else {
+            std::cerr << "Failed to find any font for ImGui; UI may render with default font." << std::endl;
+        }
     }
 
     void GolaImgui::setupCustomStyle() {
